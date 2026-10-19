@@ -10,6 +10,7 @@
 #include "hid_device.h"
 #include "uart_handler.h"
 #include "storage.h"
+#include "oled_status.h"
 #include "tinyusb.h"
 
 static const char *TAG = "EasyMCU";
@@ -146,6 +147,10 @@ void app_main(void) {
     xTaskCreatePinnedToCore(hid_tx_task, "hid_tx", 4096, NULL, 4, &s_hid_tx_task_handle, 1);
     xTaskCreatePinnedToCore(script_task, "script", 8192, NULL, 3, &s_script_task_handle, 1);
     ESP_LOGI(TAG, "Tasks created");
+
+    esp_err_t oled_err = oled_status_init();
+    if (oled_err != ESP_OK)
+        ESP_LOGW(TAG, "OLED unavailable: %s", esp_err_to_name(oled_err));
 
     EasyCon_script_auto_start();
 

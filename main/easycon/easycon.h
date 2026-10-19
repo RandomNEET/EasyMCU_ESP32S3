@@ -81,3 +81,27 @@ uint8_t EasyCon_read_byte(uint16_t addr);
 void EasyCon_write_start(uint8_t mode);
 void EasyCon_write_data(uint16_t addr, uint8_t *data, uint16_t len);
 void EasyCon_write_end(uint8_t mode);
+
+// Snapshot for observers; bytecode offsets are not source lines or progress.
+typedef enum {
+    EASYCON_SCRIPT_IDLE,
+    EASYCON_SCRIPT_RUNNING,
+    EASYCON_SCRIPT_WAITING,
+    EASYCON_SCRIPT_STOPPED,
+    EASYCON_SCRIPT_FINISHED,
+} easycon_script_state_t;
+
+typedef struct {
+    easycon_script_state_t state;
+    uint32_t elapsed_ms;
+    uint32_t wait_ms;
+    uint16_t address;
+    uint16_t end_address;
+    bool pc_seen;
+    uint32_t pc_age_ms;
+    uint32_t pc_reports;
+    uint16_t pc_buttons;
+    uint8_t pc_hat, pc_lx, pc_ly, pc_rx, pc_ry;
+} easycon_script_status_t;
+
+void EasyCon_get_script_status(easycon_script_status_t *status);

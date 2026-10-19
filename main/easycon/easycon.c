@@ -2,6 +2,8 @@
 #include "hid_device.h"
 #include <string.h>
 #include <stdlib.h>
+#include "freertos/FreeRTOS.h"
+#include "esp_timer.h"
 
 static uint8_t mem[MEM_SIZE];
 static uint8_t serial_buffer[SERIAL_BUFFER_SIZE];
@@ -21,6 +23,41 @@ static volatile uint8_t _script_running = 0;
 static volatile uint8_t _ledflag = 0;
 static volatile uint32_t timer_ms = 0;
 static volatile uint32_t wait_ms = 0;
+
+static portMUX_TYPE status_mux = portMUX_INITIALIZER_UNLOCKED;
+static easycon_script_status_t script_status;
+static int64_t status_started_us;
+static int64_t pc_last_report_us;
+static uint32_t status_last_tick;
+
+void EasyCon_get_script_status(easycon_script_status_t *status) {
+    if (status == NULL) return;
+    portENTER_CRITICAL(&status_mux);
+    *status = script_status;
+    if (status->pc_seen) {
+        uint64_t age = (uint64_t)(esp_timer_get_time() - pc_last_report_us) / 1000;
+        status->pc_age_ms = age > UINT32_MAX ? UINT32_MAX : (uint32_t)age;
+    }
+    if (status->state == EASYCON_SCRIPT_RUNNING || status->state == EASYCON_SCRIPT_WAITING)
+        status->elapsed_ms = (uint32_t)((esp_timer_get_time() - status_started_us) / 1000);
+    portEXIT_CRITICAL(&status_mux);
+}
+
+// Only the interpreter publishes bytecode position; OLED never reads VM memory.
+static void publish_script_position(void) {
+    uint32_t now = timer_ms;
+    // This timestamp belongs to the interpreter task only, so the hot path
+    // need not acquire the display snapshot lock for every VM instruction.
+    if ((uint32_t)(now - status_last_tick) < 100) return;
+    status_last_tick = now;
+    portENTER_CRITICAL(&status_mux);
+    if (script_status.state == EASYCON_SCRIPT_RUNNING || script_status.state == EASYCON_SCRIPT_WAITING) {
+        script_status.state = wait_ms ? EASYCON_SCRIPT_WAITING : EASYCON_SCRIPT_RUNNING;
+        script_status.address = script_addr;
+        script_status.wait_ms = wait_ms;
+    }
+    portEXIT_CRITICAL(&status_mux);
+}
 
 static uint8_t _ins0, _ins1, _ins2, _ins3;
 static uint16_t _ins_word;
@@ -134,13 +171,29 @@ void EasyCon_script_start(void) {
     timer_ms = 0;
     tail_wait = 0;
     memset(mem + VARSPACE_OFFSET, 0, sizeof(mem) - VARSPACE_OFFSET);
-    _script_running = 1;
     _seed = (uint16_t)EasyCon_read_byte(SEED_OFFSET + 1) << 8 | EasyCon_read_byte(SEED_OFFSET);
+    portENTER_CRITICAL(&status_mux);
+    status_started_us = esp_timer_get_time();
+    script_status = (easycon_script_status_t) {
+        .state = EASYCON_SCRIPT_RUNNING,
+        .address = script_addr,
+        .end_address = script_eof,
+    };
+    _script_running = 1;
+    portEXIT_CRITICAL(&status_mux);
 }
 
 void EasyCon_script_stop(void) {
     _script_running = 0;
     timer_elapsed = timer_ms;
+    portENTER_CRITICAL(&status_mux);
+    if (script_status.state == EASYCON_SCRIPT_RUNNING || script_status.state == EASYCON_SCRIPT_WAITING) {
+        script_status.elapsed_ms = (uint32_t)((esp_timer_get_time() - status_started_us) / 1000);
+        script_status.state = EASYCON_SCRIPT_STOPPED;
+        script_status.address = script_addr;
+        script_status.wait_ms = 0;
+    }
+    portEXIT_CRITICAL(&status_mux);
     reset_hid_report();
     _report_echo = ECHO_TIMES;
 }
@@ -149,6 +202,7 @@ void EasyCon_script_task(void) {
     while (1) {
         if (!_script_running)
             return;
+        publish_script_position();
         if (wait_ms > 0)
             return;
         for (int i = 0; i <= KEYCODE_MAX; i++) {
@@ -178,6 +232,9 @@ void EasyCon_script_task(void) {
         }
         if (script_addr >= script_eof) {
             EasyCon_script_stop();
+            portENTER_CRITICAL(&status_mux);
+            script_status.state = EASYCON_SCRIPT_FINISHED;
+            portEXIT_CRITICAL(&status_mux);
             return;
         }
         _addr = script_addr;
@@ -484,6 +541,19 @@ void EasyCon_serial_task(int16_t byte) {
                     set_right_stick((uint8_t)((serial_buffer[5] << 6) | (serial_buffer[6] >> 1)),
                                     (uint8_t)((serial_buffer[6] << 7) | (serial_buffer[7] & 0x7f)));
                     _report_echo = ECHO_TIMES;
+                    switch_hid_report_t pc_report;
+                    hid_device_get_report(&pc_report);
+                    portENTER_CRITICAL(&status_mux);
+                    pc_last_report_us = esp_timer_get_time();
+                    script_status.pc_seen = true;
+                    script_status.pc_reports++;
+                    script_status.pc_buttons = pc_report.Button;
+                    script_status.pc_hat = pc_report.HAT;
+                    script_status.pc_lx = pc_report.LX;
+                    script_status.pc_ly = pc_report.LY;
+                    script_status.pc_rx = pc_report.RX;
+                    script_status.pc_ry = pc_report.RY;
+                    portEXIT_CRITICAL(&status_mux);
                     if (hid_device_is_ready()) {
                         hid_device_send();
                         EasyCon_serial_send(REPLY_ACK);

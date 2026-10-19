@@ -5,14 +5,17 @@ idf_component_register(
         "hid/hid_device.c"
         "uart/uart_handler.c"
         "storage/storage.c"
+        "display/oled_status.c"
     INCLUDE_DIRS
         "."
         "easycon"
         "hid"
         "uart"
         "storage"
+        "display"
     REQUIRES
         driver
         nvs_flash
+        esp_timer
         tinyusb
 )

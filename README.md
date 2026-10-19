@@ -21,6 +21,33 @@ EasyMCU_ESP32S3是一个基于ESP32-S3开发板的游戏手柄模拟项目，通
    - 板子背面标有"usb"的USB-C口连接到Nintendo Switch
    - 用于模拟游戏手柄
 
+## 开发环境（devenv）
+
+安装 Nix（启用 flakes）和 devenv 后，在项目根目录运行：
+
+```sh
+devenv shell
+idf-board n16r8 build
+```
+
+环境通过 `devenv.lock` 固定 ESP-IDF Nix 包及工具链版本，包含 Python 组件管理器、CMake、Ninja 和 ESP32-S3 交叉编译器。当前使用 ESP-IDF 5.5.2，原组件锁文件记录 5.3.5，首次构建时组件管理器可能更新 `dependencies.lock`。首次进入环境和下载托管组件需要联网。
+
+三种板型分别使用 `sdkconfig.defaults` 和对应的 `sdkconfig.n16r8`、`sdkconfig.n8r8` 或 `sdkconfig.n8r2`，生成配置及构建产物保存在 `build/<板型>/`：
+
+```sh
+idf-board n16r8 build
+idf-board n8r8 build
+idf-board n8r2 build
+idf-board n16r8 menuconfig
+idf-board n16r8 -p /dev/ttyUSB0 flash monitor
+```
+
+将串口路径替换为实际设备；退出串口监视器按 `Ctrl+]`。Linux 用户需要拥有串口设备的读写权限。
+
+也可以从环境外直接运行 `devenv shell -- idf-board n16r8 build`，使用 `devenv test` 检查工具是否可用。如已安装 direnv，运行 `direnv allow` 后可通过 `.envrc` 自动进入环境。
+
+SPI OLED 接线及显示字段见 [doc/sheets.md](doc/sheets.md)。已支持 SH1106 128×64 四线 SPI 屏幕，显示 PC 控制活动、按键／摇杆和 USB 连接状态；运行板载脚本时显示脚本状态、时间、字节码地址和等待时间。宿主机状态测试见 [tests/README.md](tests/README.md)。
+
 ## 烧录指南
 
 ### 固件路径
