@@ -25,3 +25,10 @@ devenv.local.yaml
 
 # pre-commit
 .pre-commit-config.yaml
+
+# Python download tools and host tests
+__pycache__/
+*.py[cod]
+
+# EasyCon compiler module cache
+obj/

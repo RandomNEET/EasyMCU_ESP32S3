@@ -11,6 +11,7 @@
 #include "uart_handler.h"
 #include "storage.h"
 #include "oled_status.h"
+#include "ecx_runtime.h"
 #include "tinyusb.h"
 
 static const char *TAG = "EasyMCU";
@@ -131,6 +132,9 @@ void app_main(void) {
 
     ESP_ERROR_CHECK(storage_init());
     ESP_LOGI(TAG, "Storage initialized");
+
+    esp_err_t ecx_err = ecx_runtime_init();
+    if (ecx_err != ESP_OK) ESP_LOGW(TAG, "ECX storage unavailable: %s", esp_err_to_name(ecx_err));
 
     uart_handler_init();
     ESP_LOGI(TAG, "UART handler initialized");

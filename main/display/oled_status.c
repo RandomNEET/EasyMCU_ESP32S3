@@ -95,7 +95,7 @@ static esp_err_t refresh(void) {
 }
 
 static void render(void) {
-    static const char *const states[] = {"IDLE", "RUNNING", "WAITING", "STOPPED", "FINISHED"};
+    static const char *const states[] = {"IDLE", "RUNNING", "WAITING", "STOPPED", "FINISHED", "ERROR"};
     easycon_script_status_t status;
     EasyCon_get_script_status(&status);
     char line[32];
@@ -116,14 +116,17 @@ static void render(void) {
                  status.pc_ly, status.pc_rx, status.pc_ry);
         text(6, line);
     } else {
-        text(2, status.state == EASYCON_SCRIPT_FINISHED && status.end_address <= 2
+        text(2, !status.ecx && status.state == EASYCON_SCRIPT_FINISHED && status.end_address <= 2
                 ? "NO SCRIPT" : states[status.state]);
         uint32_t seconds = status.elapsed_ms / 1000;
         snprintf(line, sizeof(line), "TIME %02" PRIu32 ":%02" PRIu32 ":%02" PRIu32,
                  seconds / 3600, (seconds / 60) % 60, seconds % 60);
         text(3, line);
-        snprintf(line, sizeof(line), "ADDR %04X END %04X", (unsigned)status.address,
-                 (unsigned)status.end_address);
+        if (status.ecx)
+            snprintf(line, sizeof(line), "ECX RESULT %d", status.error_code);
+        else
+            snprintf(line, sizeof(line), "ADDR %04X END %04X", (unsigned)status.address,
+                     (unsigned)status.end_address);
         text(4, line);
         snprintf(line, sizeof(line), "WAIT %" PRIu32 " MS", status.wait_ms);
         text(5, line);

@@ -1,28 +1,40 @@
-# 脚本状态测试
+# 测试与验收
 
-使用宿主机 C 编译器运行实际解释器代码，模拟存储、时钟及 HID 回调，覆盖 PC 控制报告计数、活动时间、心跳过滤、BUSY 报告过滤和串口命令启动、等待倒计时、停止后计时冻结、重新启动清零、自然结束。FreeRTOS shim 仅供此单线程测试，不验证多核竞争或屏幕硬件。
-
-```sh
-cc -std=c11 -Wall -Wextra -Werror -Wno-sign-compare \
-  -I tests/stubs -I main/easycon -I main/hid \
-  tests/test_script_status.c main/easycon/easycon.c \
-  -o /tmp/easymcu-test-status
-/tmp/easymcu-test-status
-```
-
-`-Wno-sign-compare` 对应解释器已有的 `0x80000000` 哨兵值比较。
-
-固件编译：`devenv shell -- idf-board n16r8 build`。
-屏幕需要按 `doc/sheets.md` 的步骤上板验收。
-
-# OLED SPI 回归测试
-
-模拟 ESP32-S3 非 DMA SPI 的 64 字节传输上限，检查 8 页各分两块发送、列偏移、帧数据、完成刷新后开屏，以及传输失败时的资源释放。还覆盖 PC ACTIVE/IDLE 在 2 秒阈值处的切换和 NO SCRIPT 的显示。该测试不替代实物亮屏验证。
+在固件仓库根目录运行：
 
 ```sh
-cc -std=c11 -Wall -Wextra -Werror \
-  -I tests/oled_stubs -I main/display -I main/easycon -I main/hid \
-  tests/test_oled_spi.c main/display/oled_status.c \
-  -o /tmp/easymcu-test-oled
-/tmp/easymcu-test-oled
+sh tests/run-host.sh
 ```
+
+需要 C 编译器、Python 3 和 POSIX shell，可直接使用 devenv。测试脚本自动创建临时构建目录，各次运行相互独立。
+
+## 自动化测试覆盖
+
+| 测试 | 内容 |
+| --- | --- |
+| 脚本状态 | PC 报告计数、心跳与 BUSY 过滤、启动、等待、停止后计时冻结、重新启动清零、自然结束 |
+| OLED SPI | 64 字节非 DMA 上限、分页和列偏移、帧内容、开屏顺序、失败资源释放、PC 活动超时、空脚本提示 |
+| ECX 固件 | 分包、CRC、重传、残帧恢复、保存失败保留原镜像、开机加载、自动运行、延时和死循环中停止、VM 错误释放按键 |
+| 下载工具联调 | Python 工具通过管道连接真实 C 解析器，验证上传、启动、停止、清除、握手和无回复诊断 |
+| PRINT 兼容 | 接受 FILE 标记及 FWRITE，在提交前拒绝 FOPEN 等未支持的 syscall |
+
+旧解释器测试的 `-Wno-sign-compare` 对应已有的 `0x80000000` 哨兵比较。测试使用 FreeRTOS、NVS、时钟和 HID 的宿主机替身，不验证多核竞争、实际 Flash 断电恢复或 USB 时序。
+
+编译工具应另外用实际 EasyCon CLI 验证 SDK 检查、含空格路径和输出文件生成，使用方法见 [脚本编译与下载](../doc/ecx-flash.md)。
+
+## 固件构建
+
+```sh
+devenv shell -- idf-board n16r8 build
+```
+
+N8R8、N8R2 使用各自板型参数，生成独立构建目录。只有对应硬件上实际烧录运行后，才能确认该板型的硬件行为。
+
+## 实板验收
+
+1. 按 [接线说明](../doc/sheets.md) 验证上电显示、PC ACTIVE/IDLE 和 USB 状态。
+2. 下载 [示例脚本](../examples/pad-test.ecs) 的编译产物，确认按键、WAITING 和 FINISHED。
+3. 在长 WAIT 和无延时循环中停止，确认 STOPPED、按键释放和摇杆回中。
+4. 保存启用自动运行的脚本，断电重启后确认执行。
+5. 在上传过程中中断连接，确认旧镜像保留；对保存过程做断电恢复验证。
+6. 停止后恢复 PC 控制，清除 ECX 后检查旧脚本执行路径。

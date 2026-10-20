@@ -1,5 +1,6 @@
 #include "easycon.h"
 #include "hid_device.h"
+#include "ecx_runtime.h"
 #include <string.h>
 #include <stdlib.h>
 #include "freertos/FreeRTOS.h"
@@ -41,6 +42,7 @@ void EasyCon_get_script_status(easycon_script_status_t *status) {
     if (status->state == EASYCON_SCRIPT_RUNNING || status->state == EASYCON_SCRIPT_WAITING)
         status->elapsed_ms = (uint32_t)((esp_timer_get_time() - status_started_us) / 1000);
     portEXIT_CRITICAL(&status_mux);
+    ecx_status(status);
 }
 
 // Only the interpreter publishes bytecode position; OLED never reads VM memory.
@@ -156,11 +158,21 @@ void EasyCon_report_send_callback(void) {
 }
 
 void EasyCon_script_auto_start(void) {
-    if (auto_run)
+    if (ecx_present() ? ecx_auto_run() : auto_run)
         EasyCon_script_start();
 }
 
 void EasyCon_script_start(void) {
+    if (ecx_present()) {
+        if (ecx_start()) {
+            _script_running = 0;
+            portENTER_CRITICAL(&status_mux);
+            script_status.pc_seen = false;
+            script_status.pc_reports = 0;
+            portEXIT_CRITICAL(&status_mux);
+        }
+        return;
+    }
     script_addr = 2;
     uint16_t eof = EasyCon_read_byte(0) | (EasyCon_read_byte(1) << 8);
     if (eof == 0xFFFF)
@@ -184,6 +196,7 @@ void EasyCon_script_start(void) {
 }
 
 void EasyCon_script_stop(void) {
+    ecx_stop();
     _script_running = 0;
     timer_elapsed = timer_ms;
     portENTER_CRITICAL(&status_mux);
@@ -199,6 +212,7 @@ void EasyCon_script_stop(void) {
 }
 
 void EasyCon_script_task(void) {
+    ecx_poll();
     while (1) {
         if (!_script_running)
             return;
@@ -517,6 +531,7 @@ static void binaryop(uint8_t op, uint8_t reg, int16_t value) {
 
 void EasyCon_serial_task(int16_t byte) {
     if (byte < 0) return;
+    if (ecx_rx_byte((uint8_t)byte)) return;
     if (flash_index < flash_count) {
         serial_buffer[flash_index] = (uint8_t)byte;
         flash_index++;
@@ -531,7 +546,7 @@ void EasyCon_serial_task(int16_t byte) {
             if (serial_buffer_length == 1 && !serial_command_ready && byte == CMD_READY) {
                 serial_command_ready = true;
             } else if (serial_buffer_length == 8) {
-                if (_script_running) {
+                if (_script_running || ecx_busy()) {
                     EasyCon_serial_send(REPLY_BUSY);
                 } else {
                     set_buttons((serial_buffer[0] << 9) | (serial_buffer[1] << 2) | (serial_buffer[2] >> 5));
@@ -581,6 +596,11 @@ void EasyCon_serial_task(int16_t byte) {
                     EasyCon_serial_send((fc >> 8) & 0xFF);
                     break;
                 }
+                case CMD_ECX:
+                    if (_script_running) EasyCon_script_stop();
+                    ecx_rx_begin();
+                    serial_buffer_length = 0;
+                    return;
                 case CMD_VERSION:
                     EasyCon_serial_send(VERSION);
                     break;
@@ -605,6 +625,12 @@ void EasyCon_serial_task(int16_t byte) {
                     EasyCon_script_stop();
                     flash_addr = (uint16_t)(serial_buffer[0] | (serial_buffer[1] << 7));
                     flash_count = (serial_buffer[2] | (serial_buffer[3] << 7));
+                    if (flash_count == 0 || flash_count > SERIAL_BUFFER_SIZE ||
+                        flash_addr > 0x3fff - flash_count || ecx_busy()) {
+                        flash_count = flash_index = 0;
+                        EasyCon_serial_send(REPLY_ERROR);
+                        break;
+                    }
                     flash_index = 0;
                     EasyCon_serial_send(REPLY_FLASHSTART);
                     break;

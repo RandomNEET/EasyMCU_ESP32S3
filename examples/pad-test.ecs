@@ -1,0 +1,12 @@
+# 板载按键与延时示例，运行前连接 Switch USB。
+PRINT "Pad test start"
+WAIT 1000
+A 100
+WAIT 500
+B 100
+WAIT 500
+FOR 5
+    A 100
+    WAIT 500
+NEXT
+PRINT "Pad test complete"

@@ -89,6 +89,7 @@ typedef enum {
     EASYCON_SCRIPT_WAITING,
     EASYCON_SCRIPT_STOPPED,
     EASYCON_SCRIPT_FINISHED,
+    EASYCON_SCRIPT_ERROR,
 } easycon_script_state_t;
 
 typedef struct {
@@ -97,6 +98,8 @@ typedef struct {
     uint32_t wait_ms;
     uint16_t address;
     uint16_t end_address;
+    bool ecx;
+    int error_code;
     bool pc_seen;
     uint32_t pc_age_ms;
     uint32_t pc_reports;

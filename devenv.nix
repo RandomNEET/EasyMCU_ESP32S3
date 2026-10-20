@@ -3,10 +3,12 @@
 {
   packages = [
     pkgs.git
+    pkgs.dotnet-sdk_10
     inputs.esp-dev.packages.${pkgs.stdenv.hostPlatform.system}.esp-idf-esp32s3
   ];
 
   env.IDF_TARGET = "esp32s3";
+  env.DOTNET_ROOT = "${pkgs.dotnet-sdk_10}/share/dotnet";
 
   # Each board keeps its generated sdkconfig and build output separate.
   scripts.idf-board = {
@@ -34,6 +36,7 @@
   '';
 
   enterTest = ''
+    dotnet --list-sdks | grep -E '^10\.'
     idf.py --version
     xtensa-esp-elf-gcc --version
     cmake --version
