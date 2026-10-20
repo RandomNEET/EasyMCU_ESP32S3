@@ -46,7 +46,7 @@ idf-board n16r8 -p /dev/ttyUSB0 flash monitor
 
 也可以从环境外直接运行 `devenv shell -- idf-board n16r8 build`，使用 `devenv test` 检查工具是否可用。如已安装 direnv，运行 `direnv allow` 后可通过 `.envrc` 自动进入环境。
 
-SPI OLED 接线及显示字段见 [doc/sheets.md](doc/sheets.md)。已支持 SH1106 128×64 四线 SPI 屏幕，显示 PC 控制活动、按键／摇杆和 USB 连接状态；运行板载脚本时显示脚本状态、时间、字节码地址和等待时间。宿主机状态测试见 [tests/README.md](tests/README.md)。
+SPI OLED 接线及显示字段见 [doc/sheets.md](doc/sheets.md)。已支持 SH1106 128×64 四线 SPI 屏幕，固定同屏显示英文大字状态、USB 连接和控制器图，支持约 200 ms 的短按高亮；运行板载脚本时显示运行时间和剩余等待。宿主机状态测试见 [tests/README.md](tests/README.md)。
 
 ## 板载 ECX 脚本
 

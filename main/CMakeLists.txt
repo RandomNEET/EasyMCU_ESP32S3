@@ -5,9 +5,11 @@ idf_component_register(
         "ecx/vendor/ecs_vm.c"
         "easycon/easycon.c"
         "hid/hid_device.c"
+        "hid/hid_report.c"
         "uart/uart_handler.c"
         "storage/storage.c"
         "display/oled_status.c"
+        "display/oled_ui.c"
     INCLUDE_DIRS
         "."
         "easycon"

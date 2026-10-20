@@ -42,6 +42,15 @@ typedef struct {
     uint8_t  VendorSpec;
 } __attribute__((packed)) switch_hid_report_t;
 
+// Display feedback is independent of the report actually sent over USB.
+// buttons/directions include 200 ms of recent changes; axes are instantaneous.
+typedef struct {
+    switch_hid_report_t report;
+    uint16_t buttons;
+    uint8_t directions; // bit 0=up, 1=right, 2=down, 3=left
+} hid_display_snapshot_t;
+
+void hid_device_get_display_snapshot(hid_display_snapshot_t *snapshot);
 void hid_device_init(void);
 void hid_device_set_report(const switch_hid_report_t *report);
 void hid_device_get_report(switch_hid_report_t *report);

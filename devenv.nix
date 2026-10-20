@@ -4,7 +4,7 @@
   packages = [
     pkgs.git
     pkgs.dotnet-sdk_10
-    inputs.esp-dev.packages.${pkgs.stdenv.hostPlatform.system}.esp-idf-esp32s3
+    inputs.esp-dev.packages.${pkgs.stdenv.hostPlatform.system}.esp-idf-xtensa
   ];
 
   env.IDF_TARGET = "esp32s3";

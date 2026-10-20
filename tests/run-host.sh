@@ -10,8 +10,16 @@ cc -std=c11 -Wall -Wextra -Werror -Wno-sign-compare \
 "$bin_dir/status"
 cc -std=c11 -Wall -Wextra -Werror \
   -I tests/oled_stubs -I main/display -I main/easycon -I main/hid \
-  tests/test_oled_spi.c main/display/oled_status.c -o "$bin_dir/oled"
+  tests/test_oled_spi.c main/display/oled_status.c main/display/oled_ui.c -o "$bin_dir/oled"
 "$bin_dir/oled"
+cc -std=c11 -Wall -Wextra -Werror \
+  -I tests/ecx_stubs -I main/hid \
+  tests/test_hid_feedback.c main/hid/hid_report.c -o "$bin_dir/feedback"
+"$bin_dir/feedback"
+cc -std=c11 -Wall -Wextra -Werror \
+  -I main/display -I main/easycon -I main/hid \
+  tests/test_oled_ui.c main/display/oled_ui.c -o "$bin_dir/ui"
+"$bin_dir/ui"
 cc -std=c11 -Wall -Wextra -Werror -Wno-sign-compare \
   -I tests/ecx_stubs -I main/ecx -I main/easycon -I main/hid \
   tests/test_ecx_runtime.c main/easycon/easycon.c main/ecx/ecx_runtime.c \

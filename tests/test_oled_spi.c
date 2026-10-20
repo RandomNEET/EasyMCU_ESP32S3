@@ -2,9 +2,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <setjmp.h>
 #include <string.h>
 #include "oled_status.h"
 #include "easycon.h"
+#include "hid_device.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 
@@ -13,6 +15,9 @@ static unsigned pages, data_bytes, chunks, cleanup_count;
 static int fail_at_page = -1;
 static uint8_t pixels[1024];
 static easycon_script_status_t mock_status;
+static void (*task_entry)(void *);
+static bool run_task;
+static jmp_buf task_exit;
 const char *esp_err_to_name(esp_err_t err) { (void)err; return "mock"; }
 esp_err_t gpio_config(const gpio_config_t *config) { (void)config; return ESP_OK; }
 esp_err_t gpio_set_level(int pin, unsigned level) { if (pin == 9) dc = level; return ESP_OK; }
@@ -53,12 +58,15 @@ esp_err_t spi_device_transmit(spi_device_handle_t device, spi_transaction_t *tra
 }
 esp_err_t spi_bus_remove_device(spi_device_handle_t device) { assert(device); ++cleanup_count; return ESP_OK; }
 esp_err_t spi_bus_free(int host) { (void)host; ++cleanup_count; return ESP_OK; }
-void vTaskDelay(unsigned ticks) { (void)ticks; }
+void vTaskDelay(unsigned ticks) {
+    if (run_task) { assert(ticks == 100); longjmp(task_exit, 1); }
+}
 void vTaskDelete(void *task) { (void)task; }
 int xTaskCreate(void (*entry)(void *), const char *name, unsigned stack,
                 void *arg, unsigned priority, void *handle) {
     (void)entry; (void)name; (void)stack; (void)arg; (void)priority; (void)handle;
-    assert(display_on);
+    assert(display_on && priority == 1);
+    task_entry = entry;
     task_started = true;
     return 1;
 }
@@ -66,29 +74,35 @@ void EasyCon_get_script_status(easycon_script_status_t *status) {
     *status = mock_status;
 }
 int hid_device_is_mounted(void) { return 0; }
+void hid_device_get_display_snapshot(hid_display_snapshot_t *snapshot) {
+    *snapshot = (hid_display_snapshot_t){.report = {
+        .HAT = 8, .LX = 128, .LY = 128, .RX = 128, .RY = 128,
+    }};
+}
 int main(void) {
     assert(oled_status_init() == ESP_OK);
     assert(display_on && task_started && chunks == 16);
-    assert(pixels[0] != 0); // First glyph reached the framebuffer.
-    // PC state changes at the 2-second boundary; assert rendered glyphs.
+    assert(pixels[0] != 0); // MCU header reached the framebuffer.
+    pages = data_bytes = chunks = 0;
+    run_task = true;
+    if (setjmp(task_exit) == 0) task_entry(NULL);
+    run_task = false;
+    assert(pages == 8 && chunks == 16); // Real task refreshes, then blocks 100 ms.
+    uint8_t idle[1024];
+    memcpy(idle, pixels, sizeof(idle));
     mock_status.pc_seen = true;
     mock_status.pc_age_ms = 1999;
     pages = data_bytes = chunks = 0;
     display_on = task_started = false;
     assert(oled_status_init() == ESP_OK);
-    assert(pixels[2 * 128] == 0x7f && pixels[2 * 128 + 1] == 0x09); // P
-    assert(pixels[2 * 128 + 18] == 0x7e); // A in PC ACTIVE
+    assert(memcmp(idle, pixels, sizeof(idle)) != 0);
+    uint8_t active[1024];
+    memcpy(active, pixels, sizeof(active));
     mock_status.pc_age_ms = 2000;
     pages = data_bytes = chunks = 0;
     display_on = task_started = false;
     assert(oled_status_init() == ESP_OK);
-    assert(pixels[2 * 128 + 18] == 0x00 && pixels[2 * 128 + 19] == 0x41); // I
-    // An empty onboard script must not be shown as a completed PC script.
-    mock_status = (easycon_script_status_t){.state = EASYCON_SCRIPT_FINISHED};
-    pages = data_bytes = chunks = 0;
-    display_on = task_started = false;
-    assert(oled_status_init() == ESP_OK);
-    assert(pixels[2 * 128] == 0x7f && pixels[2 * 128 + 1] == 0x04); // N
+    assert(memcmp(active, pixels, sizeof(active)) != 0);
     pages = data_bytes = chunks = 0;
     display_on = task_started = false;
     fail_at_page = 0;

@@ -6,7 +6,6 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include <string.h>
-#include "driver/gpio.h"
 
 static const uint8_t switch_pro_hid_report_descriptor[] = {
     HID_USAGE_PAGE ( HID_USAGE_PAGE_DESKTOP     ),
@@ -98,19 +97,13 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
     (void)instance; (void)report_id; (void)report_type; (void)buffer; (void)bufsize;
 }
 
-switch_hid_report_t hid_next_report;
-
-static void hid_reset_report(void) {
-    memset(&hid_next_report, 0, sizeof(hid_next_report));
-    hid_next_report.LX = SWITCH_STICK_CENTER;
-    hid_next_report.LY = SWITCH_STICK_CENTER;
-    hid_next_report.RX = SWITCH_STICK_CENTER;
-    hid_next_report.RY = SWITCH_STICK_CENTER;
-    hid_next_report.HAT = SWITCH_HAT_CENTERED;
-}
-
 void hid_device_init(void) {
-    hid_reset_report();
+    switch_hid_report_t neutral = {
+        .HAT = SWITCH_HAT_CENTERED,
+        .LX = SWITCH_STICK_CENTER, .LY = SWITCH_STICK_CENTER,
+        .RX = SWITCH_STICK_CENTER, .RY = SWITCH_STICK_CENTER,
+    };
+    hid_device_set_report(&neutral);
     
     tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
     tusb_cfg.descriptor.device = &hid_device_descriptor;
@@ -122,28 +115,18 @@ void hid_device_init(void) {
     
     vTaskDelay(pdMS_TO_TICKS(100));
     if (tud_mounted()) {
-        tud_hid_report(0, &hid_next_report, sizeof(hid_next_report));
+        tud_hid_report(0, &neutral, sizeof(neutral));
     }
-}
-
-void hid_device_set_report(const switch_hid_report_t *report) {
-    hid_next_report = *report;
-}
-
-void hid_device_get_report(switch_hid_report_t *report) {
-    *report = hid_next_report;
 }
 
 void hid_device_send(void) {
     if (!tud_mounted()) return;
     if (!tud_hid_ready()) return;
     
-    bool ok = tud_hid_report(0, &hid_next_report, sizeof(hid_next_report));
-    if (ok) {
-        gpio_set_level(GPIO_NUM_10, 0);
-    } else {
-        gpio_set_level(GPIO_NUM_10, 1);
-    }
+    switch_hid_report_t report;
+    hid_device_get_report(&report);
+    // GPIO10 belongs to OLED CS. Do not use it as a HID debug output.
+    tud_hid_report(0, &report, sizeof(report));
 }
 
 int hid_device_is_ready(void) {
