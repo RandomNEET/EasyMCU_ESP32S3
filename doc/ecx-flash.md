@@ -103,7 +103,7 @@ ECX 保存成功后，EasyCon 原有“远程运行／远程停止”也会启�
 - 镜像上限 64 KiB，调用深度上限 32；使用内部堆，不依赖 PSRAM，动态数据仍可能耗尽内存。
 - 仅接受 ECX 格式版本 2，不接受 `.ecs` 文本、旧字节码或 `.hex/.bin` 固件文件。
 
-ECX 的 OLED 顶部显示 ECX，大字显示 RUNNING、WAITING、STOPPED、FINISHED 或 ERROR；普通状态显示运行和等待时间，错误时显示英文原因及错误码，例如 `DIV BY ZERO 8`。结果码定义：0 正常、2 取消、8 除零、9 调用过深、10 未实现原生调用、12 内存不足。完整定义见 [ecs_vm.h](../main/ecx/vendor/ecs_vm.h)，布局见 [屏幕说明](sheets.md)。
+ECX 的 OLED 顶部显示 OFFLINE，大字显示 RUNNING、WAITING、STOPPED、FINISHED 或 ERROR；普通状态显示运行和等待时间，错误时显示英文原因及错误码，例如 `DIV BY ZERO 8`。结果码定义：0 正常、2 取消、8 除零、9 调用过深、10 未实现原生调用、12 内存不足。完整定义见 [ecs_vm.h](../main/ecx/vendor/ecs_vm.h)，布局见 [屏幕说明](sheets.md)。
 
 ## 串口排错
 
