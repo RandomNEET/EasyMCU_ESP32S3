@@ -117,7 +117,7 @@ static int stick_axis_offset(uint8_t value) {
 }
 static void draw_stick(oled_canvas_t *canvas, int x, const char *name, uint8_t sx, uint8_t sy,
                        bool down) {
-  draw_text(canvas, x == 45 ? 29 : 87, 51, name, 1, true);
+  draw_text(canvas, x == 45 ? 29 : 94, 51, name, 1, true);
   draw_circle(canvas, x, 54, 8);
   if (down)
     draw_circle(canvas, x, 54, 9);
@@ -143,25 +143,25 @@ static void draw_direction_arrow(oled_canvas_t *canvas, int cx, int cy, unsigned
 }
 static void draw_controller(oled_canvas_t *canvas, const hid_display_snapshot_t *controller_input) {
   uint16_t buttons = controller_input->buttons;
-  draw_button(canvas, 1, 36, "ZL", buttons & SWITCH_BUTTON_ZL);
-  draw_button(canvas, 20, 36, "L", buttons & SWITCH_BUTTON_L);
-  draw_button(canvas, 40, 36, "-", buttons & SWITCH_BUTTON_MINUS);
-  draw_button(canvas, 51, 36, "+", buttons & SWITCH_BUTTON_PLUS);
-  draw_button(canvas, 64, 36, "H", buttons & SWITCH_BUTTON_HOME);
-  draw_button(canvas, 77, 36, "C", buttons & SWITCH_BUTTON_CAPTURE);
-  draw_button(canvas, 99, 36, "R", buttons & SWITCH_BUTTON_R);
-  draw_button(canvas, 111, 36, "ZR", buttons & SWITCH_BUTTON_ZR);
-  draw_direction_arrow(canvas, 13, 47, 0, controller_input->directions & 1);
-  draw_direction_arrow(canvas, 21, 55, 1, controller_input->directions & 2);
+  draw_button(canvas, 1, 31, "ZL", buttons & SWITCH_BUTTON_ZL);
+  draw_button(canvas, 20, 31, "L", buttons & SWITCH_BUTTON_L);
+  draw_button(canvas, 42, 33, "-", buttons & SWITCH_BUTTON_MINUS);
+  draw_button(canvas, 55, 33, "C", buttons & SWITCH_BUTTON_CAPTURE);
+  draw_button(canvas, 68, 33, "H", buttons & SWITCH_BUTTON_HOME);
+  draw_button(canvas, 81, 33, "+", buttons & SWITCH_BUTTON_PLUS);
+  draw_button(canvas, 103, 31, "R", buttons & SWITCH_BUTTON_R);
+  draw_button(canvas, 116, 31, "ZR", buttons & SWITCH_BUTTON_ZR);
+  draw_direction_arrow(canvas, 13, 46, 0, controller_input->directions & 1);
+  draw_direction_arrow(canvas, 20, 53, 1, controller_input->directions & 2);
   draw_direction_arrow(canvas, 13, 60, 2, controller_input->directions & 4);
-  draw_direction_arrow(canvas, 5, 55, 3, controller_input->directions & 8);
-  draw_button(canvas, 114, 43, "X", buttons & SWITCH_BUTTON_X);
-  draw_button(canvas, 106, 50, "Y", buttons & SWITCH_BUTTON_Y);
-  draw_button(canvas, 122, 50, "A", buttons & SWITCH_BUTTON_A);
-  draw_button(canvas, 114, 57, "B", buttons & SWITCH_BUTTON_B);
+  draw_direction_arrow(canvas, 6, 53, 3, controller_input->directions & 8);
+  draw_button(canvas, 112, 43, "X", buttons & SWITCH_BUTTON_X);
+  draw_button(canvas, 105, 50, "Y", buttons & SWITCH_BUTTON_Y);
+  draw_button(canvas, 119, 50, "A", buttons & SWITCH_BUTTON_A);
+  draw_button(canvas, 112, 57, "B", buttons & SWITCH_BUTTON_B);
   draw_stick(canvas, 45, "L", controller_input->report.LX, controller_input->report.LY,
              buttons & SWITCH_BUTTON_LCLICK);
-  draw_stick(canvas, 75, "R", controller_input->report.RX, controller_input->report.RY,
+  draw_stick(canvas, 82, "R", controller_input->report.RX, controller_input->report.RY,
              buttons & SWITCH_BUTTON_RCLICK);
 }
 static const char *script_error_label(int code) {
@@ -193,6 +193,32 @@ static const char *script_error_label(int code) {
     return "ERR";
   }
 }
+static void format_compact_time(char *text, size_t size, const char *prefix, uint32_t milliseconds,
+                                bool remaining) {
+  uint64_t ms = milliseconds;
+  if (remaining)
+    ms = ((ms + 99) / 100) * 100;
+  if (ms < 10000) {
+    snprintf(text, size, "%s %" PRIu32 ".%" PRIu32 "S", prefix, (uint32_t)(ms / 1000),
+             (uint32_t)((ms / 100) % 10));
+    return;
+  }
+  char unit = 'S';
+  uint32_t seconds = (uint32_t)(ms / 1000);
+  uint32_t value = seconds;
+  if (seconds >= 86400) {
+    value = seconds / 86400;
+    unit = 'D';
+  } else if (seconds >= 3600) {
+    value = seconds / 3600;
+    unit = 'H';
+  } else if (seconds >= 60) {
+    value = seconds / 60;
+    unit = 'M';
+  }
+  snprintf(text, size, "%s %" PRIu32 "%c", prefix, value, unit);
+}
+
 void oled_render_dashboard(uint8_t framebuffer[8][128],
                            const easycon_script_status_t *script_status,
                            const hid_display_snapshot_t *controller_input, bool usb_connected) {
@@ -228,37 +254,23 @@ void oled_render_dashboard(uint8_t framebuffer[8][128],
   fill_rect(canvas, 121, 0, 7, 7, true);
   if (!usb_connected)
     fill_rect(canvas, 122, 1, 5, 5, false);
-  draw_text(canvas, 0, 10, state_label, 2, true);
+  draw_text(canvas, 0, 12, state_label, 2, true);
   char detail_text[32];
   if (is_online_control) {
-    if (script_status->pc_age_ms < 100000)
-      snprintf(detail_text, sizeof(detail_text), "LAST %" PRIu32 ".%" PRIu32 "S",
-               script_status->pc_age_ms / 1000, (script_status->pc_age_ms / 100) % 10);
-    else
-      snprintf(detail_text, sizeof(detail_text), "LAST %" PRIu32 "S",
-               script_status->pc_age_ms / 1000);
-    draw_text(canvas, 0, 26, detail_text, 1, true);
+    // At most nine 5x7 characters (53 pixels), leaving ACTIVE a five-pixel gap.
+    format_compact_time(detail_text, sizeof(detail_text), "LAST", script_status->pc_age_ms, false);
+    draw_text(canvas, 128 - ((int)strlen(detail_text) * 6 - 1), 19, detail_text, 1, true);
   } else if (script_status->state == EASYCON_SCRIPT_ERROR) {
-    snprintf(detail_text, sizeof(detail_text), "%s %d",
-             script_error_label(script_status->error_code), script_status->error_code);
-    draw_text(canvas, 0, 26, detail_text, 1, true);
-  } else {
-    uint32_t seconds = script_status->elapsed_ms / 1000;
-    snprintf(detail_text, sizeof(detail_text), "T %02" PRIu32 ":%02" PRIu32 ":%02" PRIu32,
-             seconds / 3600, (seconds / 60) % 60, seconds % 60);
-    draw_text(canvas, 0, 26, detail_text, 1, true);
+    const char *reason = script_error_label(script_status->error_code);
+    draw_text(canvas, 128 - ((int)strlen(reason) * 6 - 1), 19, reason, 1, true);
+  } else if (has_offline_session && strcmp(state_label, "NO SCRIPT") != 0) {
+    format_compact_time(detail_text, sizeof(detail_text), "T", script_status->elapsed_ms, false);
+    draw_text(canvas, 128 - ((int)strlen(detail_text) * 6 - 1), 19, detail_text, 1, true);
     if (script_status->state == EASYCON_SCRIPT_WAITING) {
-      if (script_status->wait_ms < 100000)
-        snprintf(detail_text, sizeof(detail_text), "W %" PRIu32 ".%" PRIu32 "S",
-                 script_status->wait_ms / 1000, (script_status->wait_ms / 100) % 10);
-      else if (script_status->wait_ms < 3600000)
-        snprintf(detail_text, sizeof(detail_text), "W %" PRIu32 "S", script_status->wait_ms / 1000);
-      else
-        snprintf(detail_text, sizeof(detail_text), "W %" PRIu32 "H",
-                 script_status->wait_ms / 3600000);
-      draw_text(canvas, 80, 26, detail_text, 1, true);
+      format_compact_time(detail_text, sizeof(detail_text), "W", script_status->wait_ms, true);
+      draw_text(canvas, 128 - ((int)strlen(detail_text) * 6 - 1), 11, detail_text, 1, true);
     }
   }
-  fill_rect(canvas, 0, 34, 128, 1, true);
+  fill_rect(canvas, 0, 28, 128, 1, true);
   draw_controller(canvas, controller_input);
 }

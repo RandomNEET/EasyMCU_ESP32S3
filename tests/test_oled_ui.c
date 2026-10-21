@@ -73,6 +73,21 @@ int main(int argc, char **argv) {
   render();
   frame_t neutral;
   memcpy(neutral, guarded.frame, sizeof(neutral));
+  // Standby hides timing until a control source is known.
+  state.elapsed_ms = UINT32_MAX;
+  render();
+  assert(!memcmp(neutral, guarded.frame, sizeof(neutral)));
+  state.ecx = true;
+  state.elapsed_ms = 0;
+  render();
+  frame_t offline_ready;
+  memcpy(offline_ready, guarded.frame, sizeof(offline_ready));
+  state.elapsed_ms = UINT32_MAX;
+  render();
+  check_changes(offline_ready, 93, 19, 35, 7);
+  state.ecx = false;
+  state.elapsed_ms = 0;
+  render();
   // Expressions and blinking must never alter status text or controller pixels.
   for (int expression = OLED_FACE_NEUTRAL; expression <= OLED_FACE_CRY; ++expression) {
     for (int closed = 0; closed <= 1; ++closed) {
@@ -92,17 +107,17 @@ int main(int argc, char **argv) {
   }
   render();
   // Region checks protect all 14 mappings, without mirroring font bitmaps.
-  const int regions[14][4] = {{105, 50, 7, 7}, {113, 57, 7, 7}, {121, 50, 7, 7},  {113, 43, 7, 7},
-                              {19, 36, 7, 7},  {98, 36, 7, 7},  {0, 36, 13, 7},   {110, 36, 13, 7},
-                              {39, 36, 7, 7},  {50, 36, 7, 7},  {36, 45, 19, 19}, {66, 45, 19, 19},
-                              {63, 36, 7, 7},  {76, 36, 7, 7}};
+  const int regions[14][4] = {{104, 50, 7, 7}, {111, 57, 7, 7}, {118, 50, 7, 7},  {111, 43, 7, 7},
+                              {19, 31, 7, 7},  {102, 31, 7, 7}, {0, 31, 13, 7},   {115, 31, 13, 7},
+                              {41, 33, 7, 7},  {80, 33, 7, 7},  {36, 45, 19, 19}, {73, 45, 19, 19},
+                              {67, 33, 7, 7},  {54, 33, 7, 7}};
   for (unsigned b = 0; b < 14; b++) {
     input.buttons = 1u << b;
     render();
     check_changes(neutral, regions[b][0], regions[b][1], regions[b][2], regions[b][3]);
   }
   input.buttons = 0;
-  const int arrow_regions[4][2] = {{10, 44}, {18, 52}, {10, 57}, {2, 52}};
+  const int arrow_regions[4][2] = {{10, 43}, {17, 50}, {10, 57}, {3, 50}};
   for (unsigned i = 0; i < 4; i++) {
     input.directions = 1u << i;
     render();
@@ -114,10 +129,10 @@ int main(int argc, char **argv) {
   input.report.RX = 255;
   input.report.RY = 255;
   render();
-  assert(pixel(guarded.frame, 40, 49) && pixel(guarded.frame, 80, 59));
+  assert(pixel(guarded.frame, 40, 49) && pixel(guarded.frame, 87, 59));
   input.report.LX = input.report.LY = input.report.RX = input.report.RY = 128;
   render();
-  assert(pixel(guarded.frame, 45, 54) && pixel(guarded.frame, 75, 54));
+  assert(pixel(guarded.frame, 45, 54) && pixel(guarded.frame, 82, 54));
   frame_t usb;
   oled_render_dashboard(usb, &state, &input, true);
   assert(pixel(usb, 123, 3) && !pixel(guarded.frame, 123, 3));
@@ -132,6 +147,15 @@ int main(int argc, char **argv) {
   assert(!memcmp(&neutral[0][55], &active[0][55], 17));
   assert(memcmp(neutral[0], active[0], 41));
   assert(pixel(active, 61, 6) && pixel(active, 65, 6));
+  // Longer LAST values must stay right-aligned beside ACTIVE, never overlap it.
+  const uint32_t ages[] = {10000, 3599999, 3600000, 86399999, 86400000, UINT32_MAX};
+  state.pc_buttons = 1;
+  for (unsigned i = 0; i < sizeof(ages) / sizeof(ages[0]); ++i) {
+    state.pc_age_ms = ages[i];
+    render();
+    check_changes(active, 75, 19, 53, 7);
+  }
+  state.pc_buttons = 0;
   state.pc_age_ms = 60000;
   render();
   // Compare only the state text; LAST changes independently of activity.
@@ -175,6 +199,24 @@ int main(int argc, char **argv) {
   state.end_address = 4;
   render();
   assert(!memcmp(running[0], guarded.frame[0], 128));
+  state.state = EASYCON_SCRIPT_WAITING;
+  state.wait_ms = 100;
+  render();
+  frame_t short_wait;
+  memcpy(short_wait, guarded.frame, sizeof(short_wait));
+  state.wait_ms = 900;
+  render();
+  check_changes(short_wait, 87, 11, 41, 7);
+  state.wait_ms = 1;
+  render();
+  assert(!memcmp(short_wait, guarded.frame, sizeof(short_wait)));
+  const uint32_t waits[] = {9999, 10000, 59999, 60000, 3599999, 3600000,
+                            86399999, 86400000, UINT32_MAX};
+  for (unsigned i = 0; i < sizeof(waits) / sizeof(waits[0]); ++i) {
+    state.wait_ms = waits[i];
+    render();
+    check_changes(short_wait, 87, 11, 41, 7);
+  }
   for (int s = 0; s <= EASYCON_SCRIPT_ERROR; s++) {
     state.state = s;
     state.elapsed_ms = UINT32_MAX;

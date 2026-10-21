@@ -67,13 +67,16 @@ SPI OLED 接线及显示字段见 [doc/sheets.md](doc/sheets.md)。已支持 SH1
 - `EasyMCU_ESP32S3_n8r8.bin` - 适用于 ESP32-S3-DevKitC-1 N8R8 版本（需自行测试）
 
 ### 进入烧录模式
+
 1. 按住板子上的"BOOT"按钮
 2. 按下并松开"RST"按钮
 3. 松开"BOOT"按钮
 4. 此时板子进入烧录模式
 
 ### 烧录软件推荐
+
 ![flash_download_tool烧录示例](img/flash_download_tool烧录示例.png)
+
 - **ESP Flash Download Tool**：[官方下载链接](https://www.espressif.com/en/support/download/other-tools)
   - 选择"ESP32-S3"作为芯片类型
   - 选择固件文件
@@ -88,7 +91,8 @@ SPI OLED 接线及显示字段见 [doc/sheets.md](doc/sheets.md)。已支持 SH1
    - 通过标有"com"的USB-C口将ESP32连接到电脑
    - 通过标有"usb"的USB-C口将ESP32连接到Nintendo Switch
 3. **配置EasyCon**：
-   - 在EasyCon软件中选择ESP32的COM端口
+   - 在EasyCon软件中选择ESP32的COM端口(linux下需要先输入`sudo chmod a+rw /dev/ttyACM0 && python tools/ecx_flash.py -p /dev/ttyACM0 
+probe`)
    - 配置按键映射和其他设置
 4. **开始使用**：
    - 通过EasyCon软件发送命令
@@ -97,6 +101,7 @@ SPI OLED 接线及显示字段见 [doc/sheets.md](doc/sheets.md)。已支持 SH1
 ## 调试日志
 
 如果需要查看调试日志：
+
 1. 将CH341A模块连接到ESP32的UART1：
    - CH341A的TXD接ESP32的GPIO18（RX1）
    - CH341A的RXD接ESP32的GPIO17（TX1）
