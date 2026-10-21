@@ -125,14 +125,16 @@ int main(void) {
   uint8_t idle[1024];
   memcpy(idle, pixels, sizeof(idle));
   mock_status.pc_seen = true;
-  mock_status.pc_age_ms = 1999;
+  mock_status.pc_hat = 8;
+  mock_status.pc_lx = mock_status.pc_ly = mock_status.pc_rx = mock_status.pc_ry = 128;
+  mock_status.pc_age_ms = 59999;
   pages = data_bytes = chunks = 0;
   display_on = task_started = false;
   assert(oled_status_init() == ESP_OK);
   assert(memcmp(idle, pixels, sizeof(idle)) != 0);
   uint8_t active[1024];
   memcpy(active, pixels, sizeof(active));
-  mock_status.pc_age_ms = 2000;
+  mock_status.pc_age_ms = 60000;
   pages = data_bytes = chunks = 0;
   display_on = task_started = false;
   assert(oled_status_init() == ESP_OK);

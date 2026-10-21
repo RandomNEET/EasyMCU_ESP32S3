@@ -37,12 +37,13 @@ static void preview(const char *path) {
   fprintf(file, "P5\n384 128\n255\n");
   frame_t frames[6];
   for (unsigned i = 0; i < 6; i++) {
-    state = (easycon_script_status_t){0};
+    state = (easycon_script_status_t){
+        .pc_hat = 8, .pc_lx = 128, .pc_ly = 128, .pc_rx = 128, .pc_ry = 128};
     input.buttons = 0;
     input.directions = 0;
     if (i == 1 || i == 2) {
       state.pc_seen = true;
-      state.pc_age_ms = i == 1 ? 100 : 3000;
+      state.pc_age_ms = i == 1 ? 100 : 60000;
     }
     if (i >= 3) {
       state.ecx = true;
@@ -121,7 +122,9 @@ int main(int argc, char **argv) {
   oled_render_dashboard(usb, &state, &input, true);
   assert(pixel(usb, 123, 3) && !pixel(guarded.frame, 123, 3));
   state.pc_seen = true;
-  state.pc_age_ms = 1999;
+  state.pc_hat = 8;
+  state.pc_lx = state.pc_ly = state.pc_rx = state.pc_ry = 128;
+  state.pc_age_ms = 59999;
   render();
   frame_t active;
   memcpy(active, guarded.frame, sizeof(active));
@@ -129,9 +132,37 @@ int main(int argc, char **argv) {
   assert(!memcmp(&neutral[0][55], &active[0][55], 17));
   assert(memcmp(neutral[0], active[0], 41));
   assert(pixel(active, 61, 6) && pixel(active, 65, 6));
-  state.pc_age_ms = 2000;
+  state.pc_age_ms = 60000;
   render();
-  assert(memcmp(active, guarded.frame, sizeof(active)));
+  // Compare only the state text; LAST changes independently of activity.
+  assert(memcmp(active[1], guarded.frame[1], 128));
+  frame_t idle;
+  memcpy(idle, guarded.frame, sizeof(idle));
+  state.pc_age_ms = UINT32_MAX;
+  for (unsigned button = 0; button < 14; ++button) {
+    state.pc_buttons = 1u << button;
+    render();
+    assert(!memcmp(active[1], guarded.frame[1], 128));
+  }
+  state.pc_buttons = 0;
+  for (unsigned hat = 0; hat < 8; ++hat) {
+    state.pc_hat = hat;
+    render();
+    assert(!memcmp(active[1], guarded.frame[1], 128));
+  }
+  state.pc_hat = 8;
+  uint8_t *axes[] = {&state.pc_lx, &state.pc_ly, &state.pc_rx, &state.pc_ry};
+  for (unsigned axis = 0; axis < 4; ++axis) {
+    *axes[axis] = 127;
+    render();
+    assert(!memcmp(active[1], guarded.frame[1], 128));
+    *axes[axis] = 129;
+    render();
+    assert(!memcmp(active[1], guarded.frame[1], 128));
+    *axes[axis] = 128;
+  }
+  render();
+  assert(!memcmp(idle[1], guarded.frame[1], 128));
   state = (easycon_script_status_t){.state = EASYCON_SCRIPT_RUNNING, .ecx = true, .pc_seen = true};
   render();
   frame_t running;

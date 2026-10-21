@@ -53,7 +53,7 @@ fmt main/display/oled_ui.c
 - 接线以 `doc/sheets.md` 为准：SCLK GPIO12、MOSI GPIO11、RES GPIO46、DC GPIO9、CS GPIO10。GPIO10 不得复用为调试输出。
 - SH1106 使用 128×64 帧缓冲、8 页、列偏移 2；SPI2 mode 0、1 MHz。禁用 DMA 时单次传输最多 64 字节，一页分两次发送，不能通过增大 `max_transfer_sz` 绕过 FIFO 上限。
 - ONLINE 表示电脑控制来源，OFFLINE 表示板载脚本会话，STANDBY 表示尚无控制会话；它们不是网络连接状态。板载脚本运行或等待时优先显示板载状态。
-- PC ACTIVE/IDLE 依据最近有效控制报告的 2 秒超时判断，不代表上位机脚本实际开始或结束。不要把心跳当作控制活动。
+- PC 有按键、方向或摇杆偏移时保持 ACTIVE；全部释放回中后，按最近有效控制报告的 60 秒超时判断 IDLE。不代表上位机脚本实际开始或结束，不要把心跳当作控制活动。
 
 ## ECX 工具与协议
 

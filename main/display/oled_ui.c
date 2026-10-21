@@ -204,8 +204,13 @@ void oled_render_dashboard(uint8_t framebuffer[8][128],
   bool is_script_running = script_status->state == EASYCON_SCRIPT_RUNNING ||
                            script_status->state == EASYCON_SCRIPT_WAITING;
   bool is_online_control = script_status->pc_seen && !is_script_running;
+  bool has_held_pc_input =
+      script_status->pc_buttons != 0 || script_status->pc_hat < 8 ||
+      script_status->pc_lx != STICK_CENTER || script_status->pc_ly != STICK_CENTER ||
+      script_status->pc_rx != STICK_CENTER || script_status->pc_ry != STICK_CENTER;
   const char *state_label =
-      is_online_control ? (script_status->pc_age_ms < 2000 ? "ACTIVE" : "IDLE")
+      is_online_control
+          ? (has_held_pc_input || script_status->pc_age_ms < 60000 ? "ACTIVE" : "IDLE")
       : (unsigned)script_status->state < sizeof(state_labels) / sizeof(state_labels[0])
           ? state_labels[script_status->state]
           : "ERROR";
