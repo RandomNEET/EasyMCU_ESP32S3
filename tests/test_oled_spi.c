@@ -18,6 +18,8 @@ static easycon_script_status_t mock_status;
 static void (*task_entry)(void *);
 static bool run_task;
 static jmp_buf task_exit;
+int64_t esp_timer_get_time(void) { return 0; }
+uint32_t esp_random(void) { return 12345; }
 const char *esp_err_to_name(esp_err_t err) {
   (void)err;
   return "mock";

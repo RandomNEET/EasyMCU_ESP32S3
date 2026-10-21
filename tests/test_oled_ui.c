@@ -72,6 +72,24 @@ int main(int argc, char **argv) {
   render();
   frame_t neutral;
   memcpy(neutral, guarded.frame, sizeof(neutral));
+  // Expressions and blinking must never alter status text or controller pixels.
+  for (int expression = OLED_FACE_NEUTRAL; expression <= OLED_FACE_CRY; ++expression) {
+    for (int closed = 0; closed <= 1; ++closed) {
+      render();
+      oled_render_face(guarded.frame, expression, closed);
+      if (expression != OLED_FACE_NEUTRAL || closed)
+        check_changes(neutral, 55, 0, 17, 7);
+      if (closed) {
+        assert(pixel(guarded.frame, 55, 3));
+        assert(!pixel(guarded.frame, 55, 0));
+      }
+      if (expression == OLED_FACE_SMILE)
+        assert(pixel(guarded.frame, 61, 4) && pixel(guarded.frame, 63, 6));
+      if (expression == OLED_FACE_CRY)
+        assert(pixel(guarded.frame, 61, 6) && pixel(guarded.frame, 63, 4));
+    }
+  }
+  render();
   // Region checks protect all 14 mappings, without mirroring font bitmaps.
   const int regions[14][4] = {{105, 50, 7, 7}, {113, 57, 7, 7}, {121, 50, 7, 7},  {113, 43, 7, 7},
                               {19, 36, 7, 7},  {98, 36, 7, 7},  {0, 36, 13, 7},   {110, 36, 13, 7},
@@ -107,10 +125,10 @@ int main(int argc, char **argv) {
   render();
   frame_t active;
   memcpy(active, guarded.frame, sizeof(active));
-  // Permanent face stays fixed across modes; source label stays centered.
-  assert(!memcmp(neutral[0], active[0], 17));
-  assert(memcmp(&neutral[0][43], &active[0][43], 41));
-  assert(pixel(active, 6, 6) && pixel(active, 10, 6));
+  // The centered face stays fixed across modes; source label stays on the left.
+  assert(!memcmp(&neutral[0][55], &active[0][55], 17));
+  assert(memcmp(neutral[0], active[0], 41));
+  assert(pixel(active, 61, 6) && pixel(active, 65, 6));
   state.pc_age_ms = 2000;
   render();
   assert(memcmp(active, guarded.frame, sizeof(active)));

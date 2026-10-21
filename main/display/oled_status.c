@@ -4,6 +4,8 @@
 #include "driver/spi_master.h"
 #include "easycon.h"
 #include "esp_log.h"
+#include "esp_random.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "hid_device.h"
@@ -25,6 +27,36 @@
 static const char *TAG = "oled";
 static spi_device_handle_t oled;
 static uint8_t frame[OLED_PAGES][OLED_WIDTH];
+
+// Owned by the display task; animation never waits or changes script state.
+static struct {
+  int64_t next_blink_us;
+  int64_t blink_end_us;
+  int64_t next_expression_us;
+  int64_t expression_end_us;
+  oled_face_expression_t expression;
+} face_animation;
+
+static int64_t random_delay_us(unsigned minimum_ms, unsigned range_ms) {
+  return (int64_t)(minimum_ms + esp_random() % range_ms) * 1000;
+}
+
+static void animate_face(void) {
+  int64_t now = esp_timer_get_time();
+  if (now >= face_animation.next_blink_us) {
+    face_animation.blink_end_us = now + 200000;
+    face_animation.next_blink_us = now + random_delay_us(2500, 4001);
+  }
+  if (now >= face_animation.next_expression_us) {
+    face_animation.expression = (esp_random() & 1) ? OLED_FACE_SMILE : OLED_FACE_CRY;
+    face_animation.expression_end_us = now + random_delay_us(1200, 1201);
+    face_animation.next_expression_us =
+        face_animation.expression_end_us + random_delay_us(6000, 12001);
+  }
+  oled_render_face(
+      frame, now < face_animation.expression_end_us ? face_animation.expression : OLED_FACE_NEUTRAL,
+      now < face_animation.blink_end_us);
+}
 
 static esp_err_t transfer(bool data, const uint8_t *bytes, size_t length) {
   esp_err_t err = gpio_set_level(OLED_DC, data);
@@ -66,6 +98,7 @@ static void render_dashboard_frame(void) {
   EasyCon_get_script_status(&script_status);
   hid_device_get_display_snapshot(&controller_input);
   oled_render_dashboard(frame, &script_status, &controller_input, hid_device_is_mounted());
+  animate_face();
 }
 
 static void display_task(void *arg) {
@@ -87,6 +120,11 @@ static void display_task(void *arg) {
 }
 
 esp_err_t oled_status_init(void) {
+  int64_t now = esp_timer_get_time();
+  face_animation.next_blink_us = now + random_delay_us(2500, 4001);
+  face_animation.blink_end_us = 0;
+  face_animation.next_expression_us = now + random_delay_us(6000, 12001);
+  face_animation.expression_end_us = 0;
   const gpio_config_t pins = {
       .pin_bit_mask = (1ULL << OLED_DC) | (1ULL << OLED_RESET),
       .mode = GPIO_MODE_OUTPUT,

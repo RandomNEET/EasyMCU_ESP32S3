@@ -28,6 +28,8 @@ typedef struct {
   uint8_t (*pixels)[128];
 } oled_canvas_t;
 
+enum { FACE_X = (128 - 17) / 2 };
+
 static void draw_pixel(oled_canvas_t *canvas, int x, int y, bool on) {
   if (x < 0 || x >= 128 || y < 0 || y >= 64)
     return;
@@ -57,15 +59,31 @@ static void draw_text(oled_canvas_t *canvas, int x, int y, const char *str, int 
 }
 // Fixed 5x7 draw_pixel approximation of U+15DC, with a low underscore mouth.
 // The ASCII draw_text renderer does not decode UTF-8; keep this mark independent.
-static void draw_face_mark(oled_canvas_t *canvas) {
+static void draw_face_mark(oled_canvas_t *canvas, oled_face_expression_t expression,
+                           bool eyes_closed) {
   static const uint8_t eye[] = {0x1f, 0x25, 0x25, 0x25, 0x1f};
   for (int col = 0; col < 5; ++col)
     for (int row = 0; row < 7; ++row)
-      if (eye[col] & (1u << row)) {
-        draw_pixel(canvas, col, row, true);
-        draw_pixel(canvas, col + 12, row, true);
+      if (eyes_closed ? row == 3 : (eye[col] & (1u << row)) != 0) {
+        draw_pixel(canvas, FACE_X + col, row, true);
+        draw_pixel(canvas, FACE_X + col + 12, row, true);
       }
-  fill_rect(canvas, 6, 6, 5, 1, true);
+  if (expression == OLED_FACE_NEUTRAL) {
+    fill_rect(canvas, FACE_X + 6, 6, 5, 1, true);
+  } else {
+    for (int col = 0; col < 5; ++col) {
+      int slope = col < 2 ? col : 4 - col;
+      int y = expression == OLED_FACE_SMILE ? 4 + slope : 6 - slope;
+      draw_pixel(canvas, FACE_X + 6 + col, y, true);
+    }
+  }
+}
+
+void oled_render_face(uint8_t framebuffer[8][128], oled_face_expression_t expression,
+                      bool eyes_closed) {
+  oled_canvas_t canvas = {.pixels = framebuffer};
+  fill_rect(&canvas, FACE_X, 0, 17, 7, false);
+  draw_face_mark(&canvas, expression, eyes_closed);
 }
 
 static void draw_button(oled_canvas_t *canvas, int x, int y, const char *name, bool down) {
@@ -194,13 +212,13 @@ void oled_render_dashboard(uint8_t framebuffer[8][128],
   if (!is_online_control && !script_status->ecx &&
       script_status->state == EASYCON_SCRIPT_FINISHED && script_status->end_address <= 2)
     state_label = "NO SCRIPT";
-  draw_face_mark(canvas);
+  draw_face_mark(canvas, OLED_FACE_NEUTRAL, false);
   bool has_offline_session =
       is_script_running || script_status->ecx || script_status->end_address > 2;
   const char *mode_label = is_online_control     ? "ONLINE"
                            : has_offline_session ? "OFFLINE"
                                                  : "STANDBY";
-  draw_text(canvas, (128 - ((int)strlen(mode_label) * 6 - 1)) / 2, 0, mode_label, 1, true);
+  draw_text(canvas, 0, 0, mode_label, 1, true);
   draw_text(canvas, 108, 0, "NS", 1, true);
   fill_rect(canvas, 121, 0, 7, 7, true);
   if (!usb_connected)
