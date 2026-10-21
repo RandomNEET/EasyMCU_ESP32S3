@@ -1,53 +1,52 @@
 #include "hid_device.h"
-#include "tinyusb.h"
-#include "tinyusb_default_config.h"
 #include "class/hid/hid.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_log.h"
+#include "tinyusb.h"
+#include "tinyusb_default_config.h"
 #include <string.h>
 
 static const uint8_t switch_pro_hid_report_descriptor[] = {
-    HID_USAGE_PAGE ( HID_USAGE_PAGE_DESKTOP     ),
-    HID_USAGE      ( HID_USAGE_DESKTOP_GAMEPAD  ),
-    HID_COLLECTION ( HID_COLLECTION_APPLICATION ),
-        HID_USAGE_PAGE   ( HID_USAGE_PAGE_BUTTON ),
-        HID_USAGE_MIN    ( 0x01 ),
-        HID_USAGE_MAX    ( 0x10 ),
-        HID_LOGICAL_MIN  ( 0 ),
-        HID_LOGICAL_MAX  ( 1 ),
-        HID_REPORT_COUNT ( 16 ),
-        HID_REPORT_SIZE  ( 1 ),
-        HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
-        HID_USAGE_PAGE   ( HID_USAGE_PAGE_DESKTOP ),
-        HID_LOGICAL_MAX  ( 7 ),
-        HID_PHYSICAL_MAX_N ( 315, 2 ),
-        HID_REPORT_SIZE  ( 4 ),
-        HID_REPORT_COUNT ( 1 ),
-        HID_USAGE        ( 0x39 ),
-        HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
-        HID_REPORT_SIZE  ( 4 ),
-        HID_REPORT_COUNT ( 1 ),
-        HID_INPUT        ( HID_CONSTANT ),
-        HID_LOGICAL_MAX  ( 255 ),
-        HID_PHYSICAL_MAX ( 255 ),
-        HID_REPORT_SIZE  ( 8 ),
-        HID_REPORT_COUNT ( 4 ),
-        HID_USAGE        ( 0x30 ),
-        HID_USAGE        ( 0x31 ),
-        HID_USAGE        ( 0x32 ),
-        HID_USAGE        ( 0x35 ),
-        HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
-        HID_USAGE_PAGE_N ( HID_USAGE_PAGE_VENDOR, 2 ),
-        HID_USAGE        ( 0x20 ),
-        HID_REPORT_COUNT ( 1 ),
-        HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
-        HID_USAGE_PAGE_N ( HID_USAGE_PAGE_VENDOR, 2 ),
-        HID_USAGE_N      ( 0x2621, 2 ),
-        HID_REPORT_COUNT ( 8 ),
-        HID_OUTPUT       ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),
-    HID_COLLECTION_END
-};
+    HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),
+    HID_USAGE(HID_USAGE_DESKTOP_GAMEPAD),
+    HID_COLLECTION(HID_COLLECTION_APPLICATION),
+    HID_USAGE_PAGE(HID_USAGE_PAGE_BUTTON),
+    HID_USAGE_MIN(0x01),
+    HID_USAGE_MAX(0x10),
+    HID_LOGICAL_MIN(0),
+    HID_LOGICAL_MAX(1),
+    HID_REPORT_COUNT(16),
+    HID_REPORT_SIZE(1),
+    HID_INPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),
+    HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),
+    HID_LOGICAL_MAX(7),
+    HID_PHYSICAL_MAX_N(315, 2),
+    HID_REPORT_SIZE(4),
+    HID_REPORT_COUNT(1),
+    HID_USAGE(0x39),
+    HID_INPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),
+    HID_REPORT_SIZE(4),
+    HID_REPORT_COUNT(1),
+    HID_INPUT(HID_CONSTANT),
+    HID_LOGICAL_MAX(255),
+    HID_PHYSICAL_MAX(255),
+    HID_REPORT_SIZE(8),
+    HID_REPORT_COUNT(4),
+    HID_USAGE(0x30),
+    HID_USAGE(0x31),
+    HID_USAGE(0x32),
+    HID_USAGE(0x35),
+    HID_INPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),
+    HID_USAGE_PAGE_N(HID_USAGE_PAGE_VENDOR, 2),
+    HID_USAGE(0x20),
+    HID_REPORT_COUNT(1),
+    HID_INPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),
+    HID_USAGE_PAGE_N(HID_USAGE_PAGE_VENDOR, 2),
+    HID_USAGE_N(0x2621, 2),
+    HID_REPORT_COUNT(8),
+    HID_OUTPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),
+    HID_COLLECTION_END};
 
 #define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN)
 
@@ -73,7 +72,7 @@ static const tusb_desc_device_t hid_device_descriptor = {
     .bNumConfigurations = 0x01,
 };
 
-static const char* hid_string_descriptor[] = {
+static const char *hid_string_descriptor[] = {
     (char[]){0x09, 0x04},
     "Easycon",
     "Easycon Pro Controller",
@@ -81,61 +80,69 @@ static const char* hid_string_descriptor[] = {
 };
 
 uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
-    (void)instance;
-    return switch_pro_hid_report_descriptor;
+  (void)instance;
+  return switch_pro_hid_report_descriptor;
 }
 
-uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
-                                hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen) {
-    (void)instance; (void)report_id; (void)report_type; (void)buffer; (void)reqlen;
-    return 0;
+uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type,
+                               uint8_t *buffer, uint16_t reqlen) {
+  (void)instance;
+  (void)report_id;
+  (void)report_type;
+  (void)buffer;
+  (void)reqlen;
+  return 0;
 }
 
-void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
-                            hid_report_type_t report_type,
-                            uint8_t const *buffer, uint16_t bufsize) {
-    (void)instance; (void)report_id; (void)report_type; (void)buffer; (void)bufsize;
+void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type,
+                           uint8_t const *buffer, uint16_t bufsize) {
+  (void)instance;
+  (void)report_id;
+  (void)report_type;
+  (void)buffer;
+  (void)bufsize;
 }
 
 void hid_device_init(void) {
-    switch_hid_report_t neutral = {
-        .HAT = SWITCH_HAT_CENTERED,
-        .LX = SWITCH_STICK_CENTER, .LY = SWITCH_STICK_CENTER,
-        .RX = SWITCH_STICK_CENTER, .RY = SWITCH_STICK_CENTER,
-    };
-    hid_device_set_report(&neutral);
-    
-    tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
-    tusb_cfg.descriptor.device = &hid_device_descriptor;
-    tusb_cfg.descriptor.full_speed_config = hid_configuration_descriptor;
-    tusb_cfg.descriptor.string = hid_string_descriptor;
-    tusb_cfg.descriptor.string_count = sizeof(hid_string_descriptor) / sizeof(hid_string_descriptor[0]);
-    
-    ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
-    
-    vTaskDelay(pdMS_TO_TICKS(100));
-    if (tud_mounted()) {
-        tud_hid_report(0, &neutral, sizeof(neutral));
-    }
+  switch_hid_report_t neutral = {
+      .HAT = SWITCH_HAT_CENTERED,
+      .LX = SWITCH_STICK_CENTER,
+      .LY = SWITCH_STICK_CENTER,
+      .RX = SWITCH_STICK_CENTER,
+      .RY = SWITCH_STICK_CENTER,
+  };
+  hid_device_set_report(&neutral);
+
+  tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
+  tusb_cfg.descriptor.device = &hid_device_descriptor;
+  tusb_cfg.descriptor.full_speed_config = hid_configuration_descriptor;
+  tusb_cfg.descriptor.string = hid_string_descriptor;
+  tusb_cfg.descriptor.string_count =
+      sizeof(hid_string_descriptor) / sizeof(hid_string_descriptor[0]);
+
+  ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
+
+  vTaskDelay(pdMS_TO_TICKS(100));
+  if (tud_mounted()) {
+    tud_hid_report(0, &neutral, sizeof(neutral));
+  }
 }
 
 void hid_device_send(void) {
-    if (!tud_mounted()) return;
-    if (!tud_hid_ready()) return;
-    
-    switch_hid_report_t report;
-    hid_device_get_report(&report);
-    // GPIO10 belongs to OLED CS. Do not use it as a HID debug output.
-    tud_hid_report(0, &report, sizeof(report));
+  if (!tud_mounted())
+    return;
+  if (!tud_hid_ready())
+    return;
+
+  switch_hid_report_t report;
+  hid_device_get_report(&report);
+  // GPIO10 belongs to OLED CS. Do not use it as a HID debug output.
+  tud_hid_report(0, &report, sizeof(report));
 }
 
-int hid_device_is_ready(void) {
-    return tud_mounted() && tud_hid_ready();
-}
+int hid_device_is_ready(void) { return tud_mounted() && tud_hid_ready(); }
 
-int hid_device_is_mounted(void) {
-    return tud_mounted();
-}
+int hid_device_is_mounted(void) { return tud_mounted(); }
 
 uint32_t hid_device_get_send_count(void) { return 0; }
 uint32_t hid_device_get_fail_count(void) { return 0; }

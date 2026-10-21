@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define VERSION 0x46
 #define MEM_SIZE 512
@@ -9,51 +9,51 @@
 #define ECHO_TIMES 2
 #define ECHO_INTERVAL 2
 
-#define CMD_READY       0xA5
-#define CMD_DEBUG       0x80
-#define CMD_HELLO       0x81
-#define CMD_FLASH       0x82
+#define CMD_READY 0xA5
+#define CMD_DEBUG 0x80
+#define CMD_HELLO 0x81
+#define CMD_FLASH 0x82
 #define CMD_SCRIPTSTART 0x83
-#define CMD_SCRIPTSTOP  0x84
-#define CMD_VERSION     0x85
-#define CMD_LED         0x86
+#define CMD_SCRIPTSTOP 0x84
+#define CMD_VERSION 0x85
+#define CMD_LED 0x86
 
-#define REPLY_ERROR     0x00
-#define REPLY_ACK       0xFF
-#define REPLY_BUSY      0xFE
-#define REPLY_HELLO     0x80
+#define REPLY_ERROR 0x00
+#define REPLY_ACK 0xFF
+#define REPLY_BUSY 0xFE
+#define REPLY_HELLO 0x80
 #define REPLY_FLASHSTART 0x81
-#define REPLY_FLASHEND  0x82
+#define REPLY_FLASHEND 0x82
 #define REPLY_SCRIPTACK 0x83
 
-#define STICK_MIN    0
+#define STICK_MIN 0
 #define STICK_CENTER 128
-#define STICK_MAX    255
+#define STICK_MAX 255
 
-#define BUTTON_Y       (1 << 0)
-#define BUTTON_B       (1 << 1)
-#define BUTTON_A       (1 << 2)
-#define BUTTON_X       (1 << 3)
-#define BUTTON_L       (1 << 4)
-#define BUTTON_R       (1 << 5)
-#define BUTTON_ZL      (1 << 6)
-#define BUTTON_ZR      (1 << 7)
-#define BUTTON_MINUS   (1 << 8)
-#define BUTTON_PLUS    (1 << 9)
-#define BUTTON_LCLICK  (1 << 10)
-#define BUTTON_RCLICK  (1 << 11)
-#define BUTTON_HOME    (1 << 12)
+#define BUTTON_Y (1 << 0)
+#define BUTTON_B (1 << 1)
+#define BUTTON_A (1 << 2)
+#define BUTTON_X (1 << 3)
+#define BUTTON_L (1 << 4)
+#define BUTTON_R (1 << 5)
+#define BUTTON_ZL (1 << 6)
+#define BUTTON_ZR (1 << 7)
+#define BUTTON_MINUS (1 << 8)
+#define BUTTON_PLUS (1 << 9)
+#define BUTTON_LCLICK (1 << 10)
+#define BUTTON_RCLICK (1 << 11)
+#define BUTTON_HOME (1 << 12)
 #define BUTTON_CAPTURE (1 << 13)
 
-#define HAT_TOP          0
-#define HAT_TOP_RIGHT    1
-#define HAT_RIGHT        2
+#define HAT_TOP 0
+#define HAT_TOP_RIGHT 1
+#define HAT_RIGHT 2
 #define HAT_BOTTOM_RIGHT 3
-#define HAT_BOTTOM       4
-#define HAT_BOTTOM_LEFT  5
-#define HAT_LEFT         6
-#define HAT_TOP_LEFT     7
-#define HAT_CENTERED     8
+#define HAT_BOTTOM 4
+#define HAT_BOTTOM_LEFT 5
+#define HAT_LEFT 6
+#define HAT_TOP_LEFT 7
+#define HAT_CENTERED 8
 
 #define SERIAL_BUFFER(idx) (serial_buffer[(uint8_t)(idx)])
 
@@ -84,27 +84,27 @@ void EasyCon_write_end(uint8_t mode);
 
 // Snapshot for observers; bytecode offsets are not source lines or progress.
 typedef enum {
-    EASYCON_SCRIPT_IDLE,
-    EASYCON_SCRIPT_RUNNING,
-    EASYCON_SCRIPT_WAITING,
-    EASYCON_SCRIPT_STOPPED,
-    EASYCON_SCRIPT_FINISHED,
-    EASYCON_SCRIPT_ERROR,
+  EASYCON_SCRIPT_IDLE,
+  EASYCON_SCRIPT_RUNNING,
+  EASYCON_SCRIPT_WAITING,
+  EASYCON_SCRIPT_STOPPED,
+  EASYCON_SCRIPT_FINISHED,
+  EASYCON_SCRIPT_ERROR,
 } easycon_script_state_t;
 
 typedef struct {
-    easycon_script_state_t state;
-    uint32_t elapsed_ms;
-    uint32_t wait_ms;
-    uint16_t address;
-    uint16_t end_address;
-    bool ecx;
-    int error_code;
-    bool pc_seen;
-    uint32_t pc_age_ms;
-    uint32_t pc_reports;
-    uint16_t pc_buttons;
-    uint8_t pc_hat, pc_lx, pc_ly, pc_rx, pc_ry;
+  easycon_script_state_t state;
+  uint32_t elapsed_ms;
+  uint32_t wait_ms;
+  uint16_t address;
+  uint16_t end_address;
+  bool ecx;
+  int error_code;
+  bool pc_seen;
+  uint32_t pc_age_ms;
+  uint32_t pc_reports;
+  uint16_t pc_buttons;
+  uint8_t pc_hat, pc_lx, pc_ly, pc_rx, pc_ry;
 } easycon_script_status_t;
 
 void EasyCon_get_script_status(easycon_script_status_t *status);

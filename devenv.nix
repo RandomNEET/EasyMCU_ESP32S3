@@ -4,11 +4,23 @@
   packages = [
     pkgs.git
     pkgs.dotnet-sdk_10
+    pkgs.treefmt
+    pkgs.nixfmt
+    pkgs.clang-tools
+    pkgs.ruff
+    pkgs.shfmt
     inputs.esp-dev.packages.${pkgs.stdenv.hostPlatform.system}.esp-idf-xtensa
   ];
 
   env.IDF_TARGET = "esp32s3";
   env.DOTNET_ROOT = "${pkgs.dotnet-sdk_10}/share/dotnet";
+
+  scripts.fmt = {
+    description = "Format project sources (use --fail-on-change to check)";
+    exec = ''
+      exec treefmt --tree-root "${toString ./.}" "$@"
+    '';
+  };
 
   # Each board keeps its generated sdkconfig and build output separate.
   scripts.idf-board = {

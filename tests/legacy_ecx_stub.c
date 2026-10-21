@@ -8,4 +8,7 @@ void ecx_stop(void) {}
 void ecx_poll(void) {}
 void ecx_status(easycon_script_status_t *status) { (void)status; }
 void ecx_rx_begin(void) {}
-bool ecx_rx_byte(uint8_t byte) { (void)byte; return false; }
+bool ecx_rx_byte(uint8_t byte) {
+  (void)byte;
+  return false;
+}

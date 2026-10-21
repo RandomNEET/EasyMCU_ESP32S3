@@ -1,0 +1,28 @@
+[global]
+excludes = [
+  ".git/**",
+  ".devenv/**",
+  ".direnv/**",
+  "build/**",
+  "managed_components/**",
+  "main/ecx/vendor/**",
+]
+
+[formatter.nix]
+command = "nixfmt"
+includes = ["*.nix"]
+
+[formatter.c]
+command = "clang-format"
+options = ["-i"]
+includes = ["*.c", "*.h", "*.cpp", "*.hpp"]
+
+[formatter.python]
+command = "ruff"
+options = ["format"]
+includes = ["*.py"]
+
+[formatter.shell]
+command = "shfmt"
+options = ["-w", "-i", "2"]
+includes = ["*.sh"]

@@ -1,6 +1,6 @@
 #pragma once
-#include <stddef.h>
 #include "esp_err.h"
+#include <stddef.h>
 typedef int nvs_handle_t;
 #define NVS_READWRITE 1
 esp_err_t nvs_open_from_partition(const char *, const char *, int, nvs_handle_t *);
