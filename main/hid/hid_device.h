@@ -56,6 +56,7 @@ void hid_device_set_report(const switch_hid_report_t *report);
 void hid_device_get_report(switch_hid_report_t *report);
 void hid_device_send(void);
 int hid_device_is_ready(void);
-int hid_device_is_mounted(void);
+// Enumerated and not suspended; this does not measure physical VBUS presence.
+int hid_device_is_usb_active(void);
 uint32_t hid_device_get_send_count(void);
 uint32_t hid_device_get_fail_count(void);

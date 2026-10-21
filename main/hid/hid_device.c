@@ -142,7 +142,7 @@ void hid_device_send(void) {
 
 int hid_device_is_ready(void) { return tud_mounted() && tud_hid_ready(); }
 
-int hid_device_is_mounted(void) { return tud_mounted(); }
+int hid_device_is_usb_active(void) { return tud_mounted() && !tud_suspended(); }
 
 uint32_t hid_device_get_send_count(void) { return 0; }
 uint32_t hid_device_get_fail_count(void) { return 0; }

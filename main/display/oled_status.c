@@ -97,7 +97,7 @@ static void render_dashboard_frame(void) {
   hid_display_snapshot_t controller_input;
   EasyCon_get_script_status(&script_status);
   hid_device_get_display_snapshot(&controller_input);
-  oled_render_dashboard(frame, &script_status, &controller_input, hid_device_is_mounted());
+  oled_render_dashboard(frame, &script_status, &controller_input, hid_device_is_usb_active());
   animate_face();
 }
 

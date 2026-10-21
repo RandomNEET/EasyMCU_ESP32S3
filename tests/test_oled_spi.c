@@ -102,7 +102,7 @@ int xTaskCreate(void (*entry)(void *), const char *name, unsigned stack, void *a
   return 1;
 }
 void EasyCon_get_script_status(easycon_script_status_t *status) { *status = mock_status; }
-int hid_device_is_mounted(void) { return 0; }
+int hid_device_is_usb_active(void) { return 0; }
 void hid_device_get_display_snapshot(hid_display_snapshot_t *snapshot) {
   *snapshot = (hid_display_snapshot_t){.report = {
                                            .HAT = 8,
